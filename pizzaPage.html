@@ -1,0 +1,981 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN"
+        "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd">
+      <html xmlns="http://www.w3.org/1999/xhtml" lang="en" xml:lang="en">
+
+
+
+
+<head>
+<title>
+Order your pizza
+</title>
+
+<meta http-equiv="Content-type" content="text/html;charset=UTF-8" />
+<link rel = "stylesheet" href = "pizzaCss.css" type = "text/css"/>
+
+<script type = "text/javascript">
+//<![CDATA[
+
+// valdate name, letters and space
+
+
+/**
+*   The main function called when the user submits their order.
+*/
+function checkAll()
+{
+    // Get all the customer details to be checked
+    var creditCard  = document.forms["customerDetails"]["creditCard"].value
+    var name        = document.forms["customerDetails"]["customer Name"].value
+    var phoneNumber = document.forms["customerDetails"]["customer Phone Number"].value
+    
+    // Address variables
+    var addresssLineOne     = document.forms["customerDetails"]["address line one"].value
+    var addresssLineTwo     = document.forms["customerDetails"]["address line two"].value
+    
+    // Anything here is to stop the use of magic numbers
+    var CREDITCARD_DIGITS = 16;
+    
+    // Assign the main boolean condition, false to begin with
+    var mainValid = true;
+    
+    // Other valids for the other checks,such as the credit card and the name
+    var creditCardValid = false;
+    var nameValid       = false;
+    var phoneValid      = false;
+    var baseValid       = false;
+    
+    // Check the name has content
+    nameValid = checkName(name);
+    
+    // Display the warning to the user the name has no input if it does'nt
+    if (nameValid == false)
+    {
+        // Get the div from the innerHtml and alert the user that they must enter there name
+        var hName = document.getElementById('htmlName');
+        hName.innerHTML = "Enter your name in the box";
+        
+        // Styles the box to make it obvious where to put the content
+        document.getElementById('name').style.background="yellow";
+        mainValid = false;
+    }
+    else// Resets everything in the credit card to its original state
+    {
+        var hName = document.getElementById('htmlName');
+        hName.innerHTML = "";
+	
+		document.getElementById('name').style.background="white";
+    }
+	
+	if (addresssLineOne == "" || addresssLineTwo == "")
+	{
+		// Get the position of the innerhtml and saves it to a var
+		var addV = document.getElementById('addressV');
+		addV.innerHTML = "Please enter your address";
+		
+		// Color the box so it is a obvious error
+		document.getElementById('addressLineOne').style.background="yellow";
+		document.getElementById('addressLineTwo').style.background="yellow";
+		document.getElementById('addressLineThree').style.background="yellow";
+		
+		
+		mainValid = false;
+	}
+	else // Rest the area to its original state
+	{
+		var addV = document.getElementById('addressV');
+		addV.innerHTML = "";
+		
+		// Resets the address box
+		document.getElementById('addressLineOne').style.background="white";
+		document.getElementById('addressLineTwo').style.background="white";
+		document.getElementById('addressLineThree').style.background="white";
+	}
+    
+    // Check the phone number has input
+    if (phoneNumber == "")
+    {
+        
+		var hPhone = document.getElementById('phoneNum');
+        hPhone.innerHTML = "You must enter your mobile PhoneNumber";
+
+        document.getElementById('phoneNumber').style.background="yellow";
+        mainValid = false;
+    }
+    else
+    {
+         // Now check for the phone number
+        phoneValid  = checkPhone(phoneNumber);
+            
+            // I know here if the phone number is valid or not
+            if (phoneValid == false)
+            {
+                var hPhone = document.getElementById('phoneNum');
+				hPhone.innerHTML = "Your phone number is invalid";
+			
+                document.getElementById('phoneNumber').style.background="yellow";
+                mainValid = false;
+            }
+            else // The idea if this is if the user enters wrong the first time when they enter it right the box resets
+            {
+                // Gets rid of the red error message
+				var hPhone = document.getElementById('phoneNum');
+				hPhone.innerHTML = "";
+				
+				// Returns the box to the original color
+				document.getElementById('phoneNumber').style.background="white";
+				
+                
+            }
+    }
+           
+    
+    // Before checking the credit Card we should make sure that it has input
+    if (creditCard == "")
+    {
+        // Will get the div id from the innerhtml and display the warning
+        var hcc = document.getElementById('hCreditCard');
+        hcc.innerHTML = "You must enter your credit card details in the box";
+        
+        
+        // Styles the box
+        document.getElementById('creditCard').style.background="yellow";
+        mainValid = false;
+    }
+    else
+    {
+        // Check the credit card
+        creditCard      = strToIntArray(creditCard);
+        creditCardValid = checkLuhn(creditCard);
+        
+            // I know here if the credit card is correct or not 
+            if (creditCardValid == false)
+            {
+                var hcc = document.getElementById('hCreditCard');
+				hcc.innerHTML = "Your credit card number is invalid";
+                
+				document.getElementById('creditCard').style.background="yellow";
+                mainValid = false;
+            }
+            else // Resets everything in the creditcard to its original state
+            {
+                var hcc = document.getElementById('hCreditCard');
+				hcc.innerHTML ="";
+				
+                document.getElementById('creditCard').style.background="white";
+            }
+    }
+    
+    // Check for the base, this stops the user ordering just toppings
+    baseValid = testForBase();
+    
+    // What to do if the base is false
+    if(baseValid == false)
+    {
+        mainValid = false;
+    }
+    
+    
+    
+    
+ 
+    
+    
+    // Return the answer
+    return mainValid;
+
+}
+
+
+
+/**
+* Used to turn the string into a an array of ints, it will be used in conjunction with the credit card check
+*/
+function strToIntArray( str )
+{
+	var array = [];
+
+	for (var i=0; i < str.length; i++)
+	{
+		var chr  = str.charAt( i );
+		var num  = parseInt( chr, 10 );
+		array[i] = num;
+	}
+	
+	return array;
+}
+
+
+
+/**
+* Checks the card and sends back the result true of false.
+*/
+function checkLuhn( cardNumber )
+{
+	var valid 	= false;
+	var total 	= 0;
+	var add		= 0;
+	
+	if(cardNumber.length != 16)
+    {
+        return valid;
+    }
+    
+    //loops through the array going backwards in order to count from the back of the array first
+	for (var i = 0; i < cardNumber.length; i++)
+	{
+		
+		
+		if (i % 2 == 0)
+		{
+			add = cardNumber[i] * 2;
+				if (add >= 10)
+				{
+					add = add - 9;
+				}
+			total += add;
+		}
+		else
+		{
+			total += cardNumber[i];
+		}
+	}
+		
+	// The final check, if this is true the number is valid
+	if (total % 10 == 0)
+	{
+		valid = true;
+	}
+	
+	
+	return valid;
+}
+
+
+/**
+* Checks there is input in the name, returns true or false
+*/
+function checkName(name)
+{
+    var valid = true;
+    
+        if (name == "")
+        {
+            valid = false;
+        }
+    
+    return valid;
+}
+
+
+/**
+*   Updates the price in real time Also added the image update to this as everything wsa being checked here already
+* 	I decided to call this function on the email check as it may change the price
+*/
+function changePrice()
+{
+
+    // The value for the sizes to be passed into
+    var small   = 0.8;
+    var med     = 1;
+    var large   = 1.2;
+    
+    
+    // If I get the value of everything selected and update the value that way it should work instead of passing in a value
+    var basePrice = 0;
+    var subTotal  = 0;
+    var topping   = 0;
+    var count     = 0;
+	
+	
+	// Check the email. If it is correct the user gets a 10% discount
+	
+	// Set the email valid
+	var emailValid = false;
+	
+	// Call the function to check if the email is valid
+	emailValid = checkEmail();
+    
+    
+    // Set the loyalty card 
+    loyValid = false;
+
+    // See if it is real
+    loyValid = loyal();
+    
+    // Get the base price from the inner html
+    base = document.forms["customerDetails"]["size"].value
+    
+    // Turn base to a int so it will work with the switch
+    base = parseInt(base, 10);
+    
+    // Change the basePrice depending on the value
+    switch (base)
+    {
+        case 7:
+            basePrice = 9;
+            resizeImage(small);
+            
+            break;
+            
+        case 9:
+            basePrice = 12;
+            resizeImage(med);
+            break;
+            
+        case 12:
+            basePrice = 16;
+            resizeImage(large);
+            break;
+            
+        default :
+            
+            break;
+       
+    }
+    
+    // Counts the toppings based on wheather the box is checked or not 
+    // I decided to use this for the images to as they are already checked
+    if (document.getElementById('pepperoni').checked)
+    {
+        count++;
+        document.getElementById('pepperoniT').style.visibility="visible";
+    }
+    //Does the opposite for the display again for the pepperoni
+    else 
+    {
+        document.getElementById('pepperoniT').style.visibility="hidden";
+    }
+    
+    
+    // Displays or hides the onion
+    if (document.getElementById('onion').checked)
+    {
+        count++;
+        document.getElementById('onionT').style.visibility="visible";
+    }
+    else
+    {
+        document.getElementById('onionT').style.visibility="hidden";
+    }
+    
+    
+    // Displays or hides the pineapple
+    if (document.getElementById('pineapple').checked)
+    {
+        count++;
+        document.getElementById('pineappleT').style.visibility="visible";
+    }
+    else
+    {
+        document.getElementById('pineappleT').style.visibility="hidden";
+    }
+    
+    // Displays or hides the greenPepper
+    if (document.getElementById('greenP').checked)
+    {
+        count++;
+        document.getElementById('greenPT').style.visibility="visible";
+    }
+    else
+    {
+        document.getElementById('greenPT').style.visibility="hidden";
+    }
+    
+    // Displays or hides the bacon
+    if (document.getElementById('anchovy').checked)
+    {
+        count++;
+        document.getElementById('anchovyT').style.visibility="visible";
+    }
+    else
+    {
+        document.getElementById('anchovyT').style.visibility="hidden";
+    }
+    
+    // Displays or hides the blackOlive
+    if (document.getElementById('blackOlive').checked)
+    {
+        count++;
+        document.getElementById('blackOliveT').style.visibility="visible";
+    }
+    else
+    {
+        document.getElementById('blackOliveT').style.visibility="hidden";
+    }
+    
+    
+    
+    
+    // If the user picks more than two toppings we start charging
+    if (count > 2)
+    {
+            if (base == 7)
+            {
+                topping = 0.5;
+            }
+            else
+            {
+                topping = 1;
+            }
+        
+        subTotal = topping * (count - 2);
+    }
+    
+    
+    // Arithmetic to work out the total
+    subTotal = subTotal + basePrice; 
+	
+    // Add some text to the user if they enter there email and it is not valid
+    if(document.forms["customerDetails"]["email"].value != "")
+    {
+        var emailWarn = document.getElementById('emailWarn');
+        emailWarn.innerHTML = "your email address does not recieve a discount";
+    }
+    
+    
+    // Add some text to tell the user if the loyalty card is correct or not
+    if(document.forms["customerDetails"]["loyalty"].value != "")
+    {
+        var loyalWarn = document.getElementById('loyalWarn');
+        loyalWarn.innerHTML = "your loyaltyCard is invalid";
+    }
+      
+      
+    // Holds the value before adding to the subtotal
+	var temp = 0;
+    
+    // The temp for the loyalty card
+    var loyTemp = 0;
+    
+	// If the user has got a cit email then they get a discount
+	if (emailValid)
+	{
+        var emailWarn = document.getElementById('emailWarn');
+        emailWarn.innerHTML = "";
+       
+		
+		temp = subTotal/100;
+		temp = temp * 10;
+	
+		
+		// Ensure the temp is 2 places of decimal
+		temp = temp.toFixed(2);
+		
+		
+		// display the discount
+		document.getElementById('discount').value = temp;
+		
+		
+	}
+    else
+    {
+        document.getElementById('discount').value = 0;
+    }
+    
+    if(loyValid)
+    {
+        var loyalWarn = document.getElementById('loyalWarn');
+        loyalWarn.innerHTML = "";
+        
+        
+        // Get ten percent of the total
+        loyTemp = subTotal/100;
+        loyTemp = loyTemp * 10;
+        
+        // Ensure the loyTemp is 2 places of decimal
+		loyTemp = loyTemp.toFixed(2);
+        
+        // display the discount
+		document.getElementById('loyaltyC').value = loyTemp;
+    
+    
+    }
+    else
+    {
+        document.getElementById('loyaltyC').value = 0;
+    }
+    
+    
+    
+    // Add the total discount to the subtotal.
+    // This had to be done one at a time or java script would add it as a string and so it would look like 16.0.20.20
+    // If you parseint before adding it, parseint seemed to cut everything after the 0. off so small amount were not deducted
+    subTotal -=  temp;
+    subTotal -=  loyTemp;
+    
+    // Makes the number correct to two decimal places
+    subTotal = subTotal.toFixed(2);
+    
+    // Assigns the total value to the inner html box
+	document.getElementById('totalPrice').value = subTotal;
+
+}
+
+
+/**
+*   Check the phone number
+*/
+function checkPhone(phoneNum)
+{
+    var valid = true;
+    
+       
+    if (phoneNum.length != 10)
+    {
+        valid=false;
+    }
+    
+    if (phoneNum.substring(0,2) == "08")
+    {
+        var c = phoneNum.slice(2,3);
+    
+        if (! ((c=="3") || (c=="5") || (c=="6") || (c=="7") || (c=="9")) )	
+        {
+            valid = false;
+        }
+    }
+    
+    else if (phoneNum.substring(0,2) == "02")
+    {
+        var c = phoneNum.slice(2,3);
+    
+        if (c != "1")	
+        {
+            valid = false;
+        }
+    }
+    
+    else
+    {
+        valid = false;
+    }
+    
+ 
+            
+    for (n = 3; n < 10; n++)
+        {
+            c = phoneNum.slice(n,n+1);
+            if ((c < "0") || (c > "9"))
+            valid=false;
+        }
+        
+    return valid
+}
+
+
+
+/**
+/   This is a re size function that sizes the images depending on the size, it scales.
+/   This it to stop three separate functions for large med and small
+/   If I pass in the value of the size and multiply depending on that.
+*/
+function resizeImage(size)
+{
+
+    // Arithmetic to work out the size of the images
+    // Size 0.5 for small, 1 for med and 1.5 for large
+    // This will br defined in the function that calls it
+    var imageSize  = 300 * size;
+    
+    // Gets the images from the document, saves alot of typing and alot of lines of code
+    var baseP  = document.getElementById('base');
+    var pepper = document.getElementById('pepperoniT');
+    var kid    = document.getElementById('blackOliveT');
+    var anc    = document.getElementById('anchovyT');
+    var oni    = document.getElementById('onionT');
+    var green  = document.getElementById('greenPT');
+    var pine   = document.getElementById('pineappleT');
+    	
+    
+    //resizes the base
+    baseP.width  = imageSize;
+    baseP.height = imageSize;
+
+    // resizes the pepperoni
+    pepper.width  = imageSize;
+    pepper.height = imageSize;
+    
+    //resizes the blackOlive
+    kid.width  = imageSize;
+    kid.height = imageSize;
+    
+    //resizes the bacon
+    anc.width  = imageSize;
+    anc.height = imageSize;
+    
+    //resizes the onion
+    oni.width  = imageSize;
+    oni.height = imageSize;
+    
+    //resizes the greenPeppers
+    green.width  = imageSize;
+    green.height = imageSize;
+    
+    //resizes the pineapple
+    pine.width  = imageSize;
+    pine.height = imageSize;
+
+}
+
+/**
+*   just for the size to call, calls the change price and the test for base so the error message goes
+*/
+function testAndPriceChange()
+{
+    testForBase()
+    changePrice();
+}
+
+/**
+/   Tests for a base, so the user can not order toppings on there own. 
+*/
+function testForBase()
+{
+    // Get the value for the base from the html
+    var base = document.forms["customerDetails"]["size"].value
+    
+    // Assign the Boolean
+    var valid = true;
+    
+    
+    if(base == "empty")
+    {
+        valid = false;
+        
+		var sizeE = document.getElementById('sizeE');
+		sizeE.innerHTML = "Please pick a size, we do not sell toppings on their own";
+    }
+	else
+	{
+		var sizeE = document.getElementById('sizeE');
+		sizeE.innerHTML = "";
+	}
+    
+    return valid;   
+
+}
+
+
+
+/**
+*	Check the email is a valid email address
+*
+*/
+function checkEmail()
+{
+	// Assign the Boolean value
+    var valid = true;
+	
+	// Get the email address from the form
+	var email = document.forms["customerDetails"]["email"].value
+	
+    
+    // Will hold the position of the @ symbol
+    var at;
+    at = email.indexOf("@");
+    
+    // Will hold the position of the dot, because the beginning of the email may have a dot I will only look after the @ as there can
+    // be only one then
+    var secondHalf;
+    secondHalf = email.substring(at, email.length);
+  
+    var dot;
+    dot = secondHalf.indexOf(".");
+    // Dot now only = a small amount so I must add the length of the orginal string, add the first half
+    var firstHalf;
+    firstHalf = email.substring(0, at);
+    // As I got the dot I can now add it on
+    dot = dot + firstHalf.length;
+    
+    
+    
+    // Will hold the position of the cit part of the email
+    var cit;
+    cit = email.indexOf("mycit");
+    
+    // Will hold the part of the ie part
+    var ie;
+    ie = email.indexOf("ie");
+    
+    // Will check for the distance between the ie and the mycit part just to be sure it is correct, probably overkill but one can never be to careful
+    var dist;
+    dist = ie - cit;
+    
+    
+    // I can now check for the dot and the @. without this it wont be a email address
+    // If there is no dot or @ then it should be -1 
+    if(dot == -1 || at == -1)
+    {
+        valid = false;
+    }
+    
+    // Next if the dot is before the @ then it is invalid
+    if(dot < at)
+    {
+        valid = false;
+    }
+    
+    if(! (cit > at && cit < dot) )
+    {
+        valid = false;
+    }
+    
+    // Dist is only valid at being 6 away from the ie part. It goes from the i to the m
+    if (dist != 6)
+    {
+        valid = false;
+    }
+    
+    
+    
+	return valid;
+}
+
+
+/**
+*
+*Does a check on the loyalty card. Simply gets the check digit and adds all the numbers up, mod 10 the total and checks the
+*position of the total in the alpha array, if a match correct other wise false
+*/
+function loyal()
+{
+    var num = document.forms["customerDetails"]["loyalty"].value
+    
+    var valid = false;
+    var total = 0;
+    
+    
+    var checkLetter = num.substring(num.length-1, num.length);
+    var checkNum    = num.substring(0, num.length-1);
+    var checkString = new Array ("a","b","c","d","e","f","g","h","i","j","k");
+    
+    var letter;
+    
+    // Changes the number to a array, easier to work with and to check.
+    checkNum = strToIntArray(checkNum);
+    
+    // If the check sum is not the right size it is invalid right away
+    if (num.length != 10)
+    {
+        return valid;
+    }
+    
+    
+    for(var i = 0; i < checkNum.length; i++)
+    {
+        total += checkNum[i];
+    }
+    
+    total = total % 10;
+    
+    letter = checkString[total];
+    
+    if(letter == checkLetter)
+    {
+        valid = true;
+    }
+    
+    
+    
+    return valid
+}
+
+
+
+//]]>
+</script>
+
+</head>
+
+
+<body>
+
+<div id = "page">
+    
+    
+    
+    
+    
+    <div class = "header">
+    Pizza
+    </div>
+    
+    
+    
+    
+    
+    <div>
+    
+        <form id="customerDetails" onsubmit="return checkAll();"  method="get" action="http://atlantis.cit.ie/displayvalues.php">
+            
+            <div>
+            
+                <strong>Select your pizza here </strong>  <br/>
+        
+        
+                <br/>
+                <br/>
+                <strong>Enter name:* </strong>	<br/> <input type="text" name="customer Name" id="name" onchange="checkAll()"/>
+        
+                    <span id="htmlName" class="error">
+        
+                    </span>
+        
+                <br/>
+                <br/>
+                <strong>Enter your phone number:*</strong><br/>
+                <input type="text" name="customer Phone Number" id="phoneNumber" onchange="checkAll()"/>
+                
+                    <span id ="phoneNum" class="error">
+            
+                    </span>
+            
+                <br/>
+                <br/>
+                
+                <strong>Enter your address:*</strong><br/>
+                <input type="text" name="address line one" id="addressLineOne" onchange="checkAll()"/>
+                <br/>
+                <input type="text" name="address line two" id="addressLineTwo" onchange="checkAll()"/>
+                <br/>
+                <input type="text" name="address line three" id="addressLineThree" />
+                
+                    <span id = "addressV" class="error">
+                
+                    </span>
+                
+                <br/>
+                <br/>
+                
+                <strong>Enter Your email address:</strong> <br/>
+                (valid CIT email addresses receive a ten percent discount!)  <br/>
+                <input type="text" name="email" id="email" onchange="changePrice()"/> 
+                
+                    <!-- Will tell the user if the email address is valid or not-->
+                    <span id="emailWarn" class="error">
+                
+                    </span>
+                
+                <br/>
+                
+                Discount received from email address:	<br/>
+                <input type="text" id="discount" readonly="readonly" value = "0"/>
+                
+                
+                
+                <br/>
+                <br/>
+                
+                <!-- Will see if the user wishes to add a loyalty card number-->
+                <strong>Enter your loyalty card number:</strong> <br/>
+                (valid loyalty card will receive a ten percent discount!)  <br/>
+                <input type="text" name="loyalty" id="loyalty" onchange="changePrice()"/> 
+                
+                    <span id="loyalWarn" class="error">
+                
+                    </span>
+                
+                <br/>
+                Discount received from loyalty card:	<br/>
+                <input type="text" id="loyaltyC" readonly="readonly" value = "0"/>
+                
+                <br/>
+                <br/>
+            
+                <strong>pick your size:</strong><br/>
+                <select name="size" id="size" onchange="testAndPriceChange()">
+                        <option value="empty"></option>
+                        <option value="7">  7"</option>
+                        <option value="9">  9"</option>
+                        <option value="12">12"</option>
+                </select>
+				
+				<span id="sizeE" class="error">
+                
+                </span>
+                
+                
+                <br/>
+                <br/>
+                
+                <strong>Choose your toppings (cheese and tomato come as standard)</strong>       <br/>
+                <input onchange="changePrice()" type="checkbox" id="pepperoni"   name="pepperoni"/>     <label for="pepperoni">      The classic Pepperoni!              </label>    <br/>
+                <input onchange="changePrice()" type="checkbox" id="onion"       name="onion"/>         <label for="onion">          Add onion to the mix.               </label>    <br/>
+                <input onchange="changePrice()" type="checkbox" id="pineapple"   name="pineapple"/>     <label for="pineapple">      Add some delicious fresh pineapple. </label>    <br/>
+                <input onchange="changePrice()" type="checkbox" id="greenP"      name="greenP"/>        <label for="greenP">         Add some green peppers.             </label>    <br/>
+                <input onchange="changePrice()" type="checkbox" id="anchovy"     name="anchovy"/>       <label for="anchovy">        Add some anchovy to the mix.        </label>    <br/>
+                <input onchange="changePrice()" type="checkbox" id="blackOlive"  name="blackOlive"/>    <label for="blackOlive">     Add some black olives for fun?      </label>    <br/>
+                
+                
+                
+                
+                <br/>
+                <br/>
+                
+                
+                
+                
+                <br/>
+                <br/>
+                
+                <br/><strong>Enter your credit card number*</strong><br/>
+                <input type="text" id="creditCard" name="creditCardNo" onchange="checkAll()"/>
+                
+                    <!-- Will display a warning to the user in here if thee credit card is invalid -->
+                    <span id="hCreditCard" class="error">
+                
+                    </span>
+            
+            
+        
+        
+        
+        
+        
+        
+        
+        
+                <br/>
+                <br/>
+                
+                
+                <strong>Total Price</strong>
+                <br/>
+                <input type="text" name="totalPrice" id="totalPrice" readonly="readonly" value = "0"/>
+                <br/>
+                <br/>
+                
+                <input type="submit" value="SubmitOrder" onclick=""/>
+                
+                
+            </div>
+            
+        </form>
+    </div>
+	
+	<div class = "right">
+	
+		<div class = "pizza">
+		
+			<img class="pizza"  src = "pics/pizza-base.png" 	width = "300" height = "300" id="base" 			alt = "pizza"/>
+			
+			<img class="pizzat" src = "pics/topping0.png"  	    width = "300" height = "300" id="blackOliveT" 	alt = "blackOlive"/>
+			<img class="pizzat" src = "pics/topping1.png"  	    width = "300" height = "300" id="anchovyT" 		alt = "bacon"/>
+			<img class="pizzat" src = "pics/topping2.png" 	    width = "300" height = "300" id="onionT" 		alt = "onion"/>
+			<img class="pizzat" src = "pics/topping3.png" 		width = "300" height = "300" id="greenPT"		alt = "greenPeppers"/>
+			<img class="pizzat" src = "pics/topping4.png" 		width = "300" height = "300" id="pepperoniT" 	alt = "pepperoni"/>
+			<img class="pizzat" src = "pics/topping5.png" 		width = "300" height = "300" id="pineappleT"	alt = "pineapple"/>
+		
+		</div>
+		
+	</div>
+    
+
+
+
+
+</div>
+
+</body>
+</html>

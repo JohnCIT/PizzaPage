@@ -1,0 +1,64 @@
+
+body
+{
+    font-family:        Arial, Helvetica, sans-serif ;
+    text-align:         justify;
+    padding:            0.5em;
+    border:             solid 1px #3D1400;
+    border-radius:      50px;
+    background-color:   #FFCF73;
+}
+
+
+div.header
+{
+    text-align:         center;
+    font-size:          4em;
+    padding:            0.125em;
+    border:             1px solid #3D1400;
+    border-radius:      50px;
+    background-color:   #B87F4f;
+    color:              white;
+    font-weight:        bold;
+}
+
+.page
+{
+    background-color:   #B87F4f;
+
+}
+
+
+div .right
+{
+	float:  	right;
+    right:  	100px;
+	top:    	200px;
+	position:   relative;
+   
+}
+
+div .pizza
+{
+	position:   fixed;
+	right:      100px;
+	top:        200px;
+}
+
+
+
+div .pizzat
+{
+	position:   fixed;
+	right:      100px;
+	top:        200px;
+    visibility: hidden;
+}
+
+.error
+{
+	font-weight:        bold;
+	color:              red;
+
+}
+
